@@ -23,7 +23,9 @@ import {
 
 /** Read GitHub Action input from environment. */
 function getInput(name: string): string {
-  const envName = `INPUT_${name.toUpperCase().replace(/-/g, '_')}`;
+  // GitHub Actions preserves hyphens in env var names:
+  // input "github-token" → INPUT_GITHUB-TOKEN (not INPUT_GITHUB_TOKEN)
+  const envName = `INPUT_${name.toUpperCase()}`;
   return process.env[envName] ?? '';
 }
 
