@@ -1,0 +1,24 @@
+{
+  "name": "@sulthonzh/code-reviewer",
+  "version": "0.1.0",
+  "description": "AI-powered code reviewer using Z.AI",
+  "main": "dist/index.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "bundle": "ncc build src/main.ts -o dist --source-map --license licenses.txt"
+  },
+  "dependencies": {
+    "openai": "^4.78.0",
+    "@octokit/rest": "^21.1.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@vercel/ncc": "^0.38.3",
+    "vitest": "^2.1.0"
+  }
+}
