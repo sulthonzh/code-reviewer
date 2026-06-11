@@ -28229,8 +28229,25 @@ async function handleDetectContext() {
         return;
     }
     const octokit = (0, github_1.createOctokit)(githubToken);
-    const files = await (0, github_1.getPRFiles)(octokit, ctx);
-    const packageJson = await (0, github_1.getPackageJson)(octokit, ctx.owner, ctx.repo);
+    // On push events (pullNumber === 0), use repo tree instead of PR files
+    let files;
+    if (ctx.pullNumber === 0) {
+        const tree = await octokit.git.getTree({
+            owner: ctx.owner,
+            repo: ctx.repo,
+            tree_sha: ctx.sha || 'HEAD',
+            recursive: 'true',
+        });
+        files = tree.data.tree
+            .filter(item => item.type === 'blob')
+            .map(item => item.path)
+            .filter((path) => path !== undefined);
+        logNotice(`No PR context — using repo tree (${files.length} files)`);
+    }
+    else {
+        files = await (0, github_1.getPRFiles)(octokit, ctx);
+    }
+    const packageJson = await (0, github_1.getPackageJson)(octokit, ctx.owner, ctx.repo, ctx.sha || undefined);
     const context = (0, context_detector_1.detectProjectContext)({
         files,
         packageJson,

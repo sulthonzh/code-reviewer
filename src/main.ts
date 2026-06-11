@@ -153,8 +153,26 @@ async function handleDetectContext(): Promise<void> {
   }
 
   const octokit = createOctokit(githubToken);
-  const files = await getPRFiles(octokit, ctx);
-  const packageJson = await getPackageJson(octokit, ctx.owner, ctx.repo);
+
+  // On push events (pullNumber === 0), use repo tree instead of PR files
+  let files: string[];
+  if (ctx.pullNumber === 0) {
+    const tree = await octokit.git.getTree({
+      owner: ctx.owner,
+      repo: ctx.repo,
+      tree_sha: ctx.sha || 'HEAD',
+      recursive: 'true',
+    });
+    files = tree.data.tree
+      .filter(item => item.type === 'blob')
+      .map(item => item.path)
+      .filter((path): path is string => path !== undefined);
+    logNotice(`No PR context — using repo tree (${files.length} files)`);
+  } else {
+    files = await getPRFiles(octokit, ctx);
+  }
+
+  const packageJson = await getPackageJson(octokit, ctx.owner, ctx.repo, ctx.sha || undefined);
 
   const context = detectProjectContext({
     files,
