@@ -81,7 +81,6 @@ export function runQualityGate(files: DiffFile[]): QualityFinding[] {
   const findings: QualityFinding[] = [];
 
   for (const file of files) {
-    // Skip non-code files
     if (isIgnoredFile(file.path)) continue;
 
     for (const addition of file.additions) {

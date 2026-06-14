@@ -152,7 +152,6 @@ export async function runAutoRelease(params: {
     params.githubToken ?? process.env.GITHUB_TOKEN ?? ''
   );
 
-  // Check if this is an npm package
   const packageJson = await getPackageJson(octokit, owner, repo);
   const isNpmPackage = packageJson !== null && (
     !!(packageJson.bin) ||
@@ -160,11 +159,9 @@ export async function runAutoRelease(params: {
     !!(packageJson.exports)
   );
 
-  // Get current version
   const currentTag = await getLatestTag(octokit, owner, repo);
   const currentVersion = currentTag?.replace(/^v/, '') ?? '0.0.0';
 
-  // Get commits since last tag
   const commits = currentTag
     ? await getCommitsSinceTag(octokit, owner, repo, currentTag, branch)
     : await getCommitsSinceTag(octokit, owner, repo, '', branch);
@@ -179,7 +176,6 @@ export async function runAutoRelease(params: {
     };
   }
 
-  // Determine bump type
   const bump = parseBumpType(commits);
 
   if (bump.type === 'none') {
@@ -192,11 +188,9 @@ export async function runAutoRelease(params: {
     };
   }
 
-  // Calculate new version
   const newVersion = bumpVersion(currentVersion, bump.type);
   const newTag = `v${newVersion}`;
 
-  // Generate release notes
   const releaseNotes = generateReleaseNotes(commits);
   const title = isNpmPackage
     ? `v${newVersion}`
@@ -204,7 +198,6 @@ export async function runAutoRelease(params: {
 
   const fullBody = `${releaseNotes}\n\n---\n\n${bump.reason}\n\n${commits.length} commit(s) since ${currentTag ?? 'start'}`;
 
-  // Create release
   try {
     const releaseUrl = await createRelease(octokit, owner, repo, {
       tag: newTag,

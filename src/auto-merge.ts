@@ -34,7 +34,6 @@ async function getAppInstallationToken(
   privateKey: string,
   owner: string,
 ): Promise<string> {
-  // Create JWT
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iat: now - 60,        // issued at (60s in the past for clock drift)
@@ -44,7 +43,6 @@ async function getAppInstallationToken(
 
   const token = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
 
-  // Get app installations
   const appOctokit = new Octokit({ auth: token });
   const installations = await appOctokit.apps.listInstallations();
 
@@ -52,12 +50,10 @@ async function getAppInstallationToken(
     throw new Error('GitHub App has no installations');
   }
 
-  // Find installation for the owner
   const installation = installations.data.find(
     inst => inst.account?.login === owner
   ) ?? installations.data[0];
 
-  // Create installation access token
   const accessToken = await appOctokit.apps.createInstallationAccessToken({
     installation_id: installation.id,
   });
@@ -78,7 +74,6 @@ export async function runAutoMerge(params: AutoMergeParams): Promise<{
     commitTitle,
   } = params;
 
-  // Resolve context
   const actionCtx = parseActionContext();
   const { owner, repo } = parseRepoEnv();
   const pullNumber = params.pullNumber ?? actionCtx.pullNumber;
@@ -93,10 +88,8 @@ export async function runAutoMerge(params: AutoMergeParams): Promise<{
     };
   }
 
-  // Get the best available token
   let token: string;
   let tokenSource: string;
-
   if (appId && appPrivateKey) {
     try {
       token = await getAppInstallationToken(appId, appPrivateKey, owner);
@@ -128,7 +121,6 @@ export async function runAutoMerge(params: AutoMergeParams): Promise<{
   const octokit = createOctokit(token);
 
   try {
-    // Approve the PR
     await createReview(octokit, ctx, 'APPROVE', 'Auto-approved by AI Code Reviewer — all checks passed.');
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -137,7 +129,6 @@ export async function runAutoMerge(params: AutoMergeParams): Promise<{
   }
 
   try {
-    // Merge the PR (squash)
     await mergePR(octokit, ctx, commitTitle);
     return {
       merged: true,

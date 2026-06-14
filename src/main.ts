@@ -251,7 +251,6 @@ async function handleQualityGate(): Promise<void> {
 
   console.log(formatQualityReport(findings));
 
-  // Post as status check
   await setStatusCheck(octokit, ctx, {
     state: passed ? 'success' : 'failure',
     description: passed
@@ -295,11 +294,7 @@ async function handleAutoRelease(): Promise<void> {
     branch,
   });
 
-  if (result.released) {
-    logNotice(result.message);
-  } else {
-    logNotice(result.message);
-  }
+  logNotice(result.message);
 }
 
 async function handlePostStatus(): Promise<void> {
