@@ -16,7 +16,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
   const { files, packageJson } = fileList;
   const pkgInfo = parsePackageJson(packageJson);
 
-  // Check for Next.js
   const hasNextConfig = files.some(f =>
     f === 'next.config.js' || f === 'next.config.mjs' || f === 'next.config.ts'
   );
@@ -31,7 +30,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
     };
   }
 
-  // Check for Go
   if (files.some(f => f === 'go.mod')) {
     return {
       type: 'go',
@@ -43,7 +41,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
     };
   }
 
-  // Check for Zig
   if (files.some(f => f.endsWith('.zig') || f === 'build.zig')) {
     return {
       type: 'zig',
@@ -55,7 +52,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
     };
   }
 
-  // Check for Python
   if (files.some(f => f.endsWith('.py') || f === 'requirements.txt' || f === 'pyproject.toml')) {
     return {
       type: 'python',
@@ -67,7 +63,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
     };
   }
 
-  // Node.js CLI detection (has bin in package.json)
   if (pkgInfo && pkgInfo.bin && Object.keys(pkgInfo.bin).length > 0) {
     return {
       type: 'cli',
@@ -79,7 +74,6 @@ export function detectProjectContext(fileList: FileList): ProjectContext {
     };
   }
 
-  // Generic npm package
   if (pkgInfo) {
     return {
       type: 'cli',

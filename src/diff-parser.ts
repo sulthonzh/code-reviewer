@@ -27,7 +27,6 @@ export function parseDiff(diffText: string): DiffFile[] {
   for (const rawLine of lines) {
     const line = rawLine.replace(/\r$/, '');
 
-    // New file diff header
     const diffMatch = line.match(DIFF_HEADER);
     if (diffMatch) {
       if (current) {
@@ -40,7 +39,6 @@ export function parseDiff(diffText: string): DiffFile[] {
 
     if (!current) continue;
 
-    // Old/new file markers
     const oldMatch = line.match(OLD_FILE);
     if (oldMatch) {
       if (oldMatch[1] !== '/dev/null') {
@@ -57,13 +55,11 @@ export function parseDiff(diffText: string): DiffFile[] {
       continue;
     }
 
-    // Detect binary
     if (line.startsWith('Binary files') || line.startsWith('GIT binary patch')) {
       current.isBinary = true;
       continue;
     }
 
-    // Detect rename
     if (line.startsWith('rename from ')) {
       current.isRenamed = true;
       current.oldPath = line.slice('rename from '.length);
@@ -71,12 +67,10 @@ export function parseDiff(diffText: string): DiffFile[] {
       current.path = line.slice('rename to '.length);
     }
 
-    // Detect new file
     if (line.startsWith('new file mode ')) {
       current.isNew = true;
     }
 
-    // Hunk header
     const hunkMatch = line.match(HUNK_HEADER);
     if (hunkMatch) {
       oldLineNum = parseInt(hunkMatch[1], 10);
@@ -94,7 +88,6 @@ export function parseDiff(diffText: string): DiffFile[] {
 
     if (!currentHunk) continue;
 
-    // Diff lines
     if (line.startsWith('+')) {
       const dl: DiffLine = {
         type: 'add',

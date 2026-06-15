@@ -76,7 +76,6 @@ function assessComplexty(files: DiffFile[]): 'low' | 'medium' | 'high' {
 function parseFindingsResponse(text: string): AiFinding[] {
   const trimmed = text.trim();
 
-  // Try direct JSON parse
   try {
     const parsed = JSON.parse(trimmed);
     if (Array.isArray(parsed)) {
@@ -86,7 +85,6 @@ function parseFindingsResponse(text: string): AiFinding[] {
     // Not direct JSON, try to extract from markdown
   }
 
-  // Try to extract JSON from markdown code block
   const jsonMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
   if (jsonMatch && jsonMatch[1]) {
     try {
@@ -99,7 +97,6 @@ function parseFindingsResponse(text: string): AiFinding[] {
     }
   }
 
-  // Try to find array in text
   const arrayMatch = trimmed.match(/\[[\s\S]*\]/);
   if (arrayMatch) {
     try {
@@ -184,11 +181,9 @@ export async function runAiReview(params: {
   let allFindings: AiFinding[] = [];
   let modelUsed = model;
 
-  // Decide: per-file or whole-diff analysis
   const totalDiffSize = diffText.length;
 
   if (totalDiffSize > WHOLE_DIFF_THRESHOLD) {
-    // Per-file analysis for large diffs
     for (const file of files) {
       if (file.isBinary) continue;
       const fileDiff = diffToText([file]);
@@ -212,7 +207,6 @@ export async function runAiReview(params: {
       }
     }
   } else {
-    // Whole-diff analysis for small/medium diffs
     const userPrompt = buildUserPrompt(files);
     allFindings = await callModel(client, modelUsed, systemPrompt, userPrompt);
   }
@@ -231,7 +225,6 @@ export async function runAiReview(params: {
     }
   }
 
-  // Determine approval
   const hasBlockers = allFindings.some(
     f => f.severity === 'critical' || f.severity === 'high'
   );
@@ -283,7 +276,6 @@ async function postFindingsToGitHub(
     }
   }
 
-  // Create review with summary
   const reviewComments = findings
     .filter(f => f.severity !== 'critical' && f.severity !== 'high')
     .slice(0, 10)
@@ -295,7 +287,6 @@ async function postFindingsToGitHub(
 
   await createReview(octokit, ctx, event, summary, reviewComments);
 
-  // Set status check
   await setStatusCheck(octokit, ctx, {
     state: approved ? 'success' : 'failure',
     description: approved
