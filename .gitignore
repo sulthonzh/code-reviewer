@@ -6,3 +6,7 @@ build/
 .env.*
 !.env.example
 !.env.template
+__pycache__/
+.venv/
+*.egg-info/
+.mypy_cache/

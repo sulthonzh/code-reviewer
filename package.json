@@ -1,9 +1,18 @@
 {
-  "name": "@sulthonzh/code-reviewer",
+  "name": "@quadbyte/code-reviewer",
   "version": "0.1.0",
   "description": "AI-powered code reviewer using Z.AI",
   "main": "dist/index.js",
   "private": true,
+  "files": [
+    "dist/index.js",
+    "dist/**/*.d.ts",
+    "dist/licenses.txt",
+    "action.yml"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
