@@ -16,7 +16,8 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "bundle": "ncc build src/main.ts -o dist --source-map --license licenses.txt"
+    "bundle": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
+    "prepublishOnly": "npm run bundle && npm test"
   },
   "dependencies": {
     "@octokit/rest": "^21.1.0",

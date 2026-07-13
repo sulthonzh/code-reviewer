@@ -1,19 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { scanDiffForSecrets, formatSecretFindings } from '../src/secret-scanner';
 
+// FAKE secrets for testing — match scanner regex patterns but are NOT real credentials
 const DIFF_WITH_SECRETS = `diff --git a/src/config.ts b/src/config.ts
 new file mode 100644
 --- /dev/null
 +++ b/src/config.ts
 @@ -0,0 +1,8 @@
-+const githubPat = "REDACTED_GH_TOKEN";
-+const fineGrainedPat = "REDACTED_GH_PAT";
-+const npmToken = "REDACTED_NPM_TOKEN";
-+const awsKey = "REDACTED_AWS_EXAMPLE";
-+const apiKey = "REDACTED_API_KEY";
-+const password = "REDACTED_PASSWORD";
-+const privateKey = "REDACTED_PEM_HEADER";
-+console.log("REDACTED_BEARER_TOKEN");
++const githubPat = "ghp_0123456789abcdef0123456789abcdef01234567";
++const fineGrainedPat = "github_pat_0123456789abcdef01234567";
++const npmToken = "npm_0123456789abcdef0123456789abcdef01234567";
++const awsKey = "AKIA0123456789ABCDEF";
++const apiKey = "apiKey: \"ak_0123456789abcdef0123456789\"";
++const password = "password = \"supersecret12345\"";
++const privateKey = "-----BEGIN RSA PRIVATE KEY-----";
++console.log("Authorization: Bearer abcdefghijklmnop0123456789");
 `;
 
 const CLEAN_DIFF = `diff --git a/src/clean.ts b/src/clean.ts
@@ -85,7 +86,7 @@ describe('scanDiffForSecrets', () => {
     const findings = scanDiffForSecrets(DIFF_WITH_SECRETS);
     const ghPat = findings.find(f => f.type === 'GitHub PAT (classic)');
     expect(ghPat!.redacted).toContain('****');
-    expect(ghPat!.redacted).not.toContain('REDACTED_GH_TOKEN');
+    expect(ghPat!.redacted).not.toContain('ghp_0123456789abcdef0123456789abcdef01234567');
   });
 
   it('does not scan binary files', () => {
