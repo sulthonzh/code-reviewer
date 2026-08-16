@@ -25,7 +25,7 @@
     "openai": "^4.78.0"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.31.0",
+    "@changesets/cli": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.0",
     "@vercel/ncc": "^0.38.3",
