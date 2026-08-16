@@ -1,171 +1,41 @@
-name: AI Code Review Pipeline
+name: Release
 
 on:
-  workflow_call:
-    inputs:
-      auto_merge:
-        description: "Enable auto-merge on approval"
-        type: boolean
-        default: true
-      auto_release:
-        description: "Enable auto-release on merge to main"
-        type: boolean
-        default: true
-      cheap_model:
-        description: "Model for initial pass"
-        type: string
-        default: "glm-4.5"
-      expensive_model:
-        description: "Model for complex reviews"
-        type: string
-        default: "glm-5.1"
-      complexity_threshold:
-        description: "Lines of diff to trigger expensive model"
-        type: number
-        default: 500
-    secrets:
-      ZAI_API_KEY:
-        required: true
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
-  pull-requests: write
   contents: write
-  checks: write
-  statuses: write
-
-env:
-  ZAI_BASE_URL: "https://api.z.ai/api/coding/paas/v4/"
+  pull-requests: write
+  id-token: write
 
 jobs:
-  # ─── STAGE 1: Secret Scan ───────────────────────────────
-  secret-scan:
-    name: "Secret Scan"
+  release:
+    name: Version & Publish
     runs-on: ubuntu-latest
-    outputs:
-      secrets_found: ${{ steps.scan.outputs.found }}
-      secret_count: ${{ steps.scan.outputs.count }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - name: Scan diff for secrets
-        id: scan
-        uses: sulthonzh/code-reviewer@main
+      - uses: actions/setup-node@v7
         with:
-          command: secret-scan
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 24
+          registry-url: https://registry.npmjs.org
 
-      - name: Block if secrets found
-        if: steps.scan.outputs.found == 'true'
-        run: |
-          echo "::error::Found ${{ steps.scan.outputs.count }} potential secret(s) in the diff. Remove them before merging."
-          exit 1
+      - run: npm install --no-fund --no-audit
 
-  # ─── STAGE 2: AI Review ─────────────────────────────────
-  ai-review:
-    name: "AI Review"
-    runs-on: ubuntu-latest
-    needs: secret-scan
-    outputs:
-      approved: ${{ steps.review.outputs.approved }}
-      model_used: ${{ steps.model.outputs.model }}
-      complexity: ${{ steps.review.outputs.complexity }}
-    steps:
-      - uses: actions/checkout@v4
+      - name: Create Release Pull Request or Publish
+        uses: changesets/action@v2.1.0
         with:
-          fetch-depth: 0
-
-      - name: Detect project context
-        id: context
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: detect-context
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Route to model
-        id: model
-        run: |
-          DIFF_LINES=$(git diff origin/main...HEAD 2>/dev/null | wc -l || echo 0)
-          if [ "$DIFF_LINES" -gt "${{ inputs.complexity_threshold }}" ]; then
-            echo "model=${{ inputs.expensive_model }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "model=${{ inputs.cheap_model }}" >> "$GITHUB_OUTPUT"
-          fi
-          echo "Diff lines: $DIFF_LINES → model: $(cat $GITHUB_OUTPUT | grep model | cut -d= -f2)"
-
-      - name: Run AI review
-        id: review
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: ai-review
-          model: ${{ steps.model.outputs.model }}
-          project-type: ${{ steps.context.outputs.project_type }}
-          zai-api-key: ${{ secrets.ZAI_API_KEY }}
-          zai-base-url: ${{ env.ZAI_BASE_URL }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # ─── STAGE 3: Quality Gate ──────────────────────────────
-  quality-gate:
-    name: "Quality Gate"
-    runs-on: ubuntu-latest
-    needs: [secret-scan, ai-review]
-    outputs:
-      passed: ${{ steps.gate.outputs.passed }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run quality checks
-        id: gate
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: quality-gate
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Post status check
-        if: always()
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: post-status
-          passed: ${{ steps.gate.outputs.passed }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # ─── STAGE 4: Auto-Merge ────────────────────────────────
-  auto-merge:
-    name: "Auto-Merge"
-    runs-on: ubuntu-latest
-    needs: [ai-review, quality-gate]
-    if: >-
-      inputs.auto_merge &&
-      needs.ai-review.outputs.approved == 'true' &&
-      needs.quality-gate.outputs.passed == 'true' &&
-      github.event_name == 'pull_request'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Approve and merge
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: auto-merge
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-  # ─── STAGE 5: Auto-Release ──────────────────────────────
-  auto-release:
-    name: "Auto-Release"
-    runs-on: ubuntu-latest
-    if: >-
-      inputs.auto_release &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect and release
-        uses: sulthonzh/code-reviewer@main
-        with:
-          command: auto-release
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          version-script: npx changeset version
+          commit-message: "chore(release): version packages"
+          pr-title: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
